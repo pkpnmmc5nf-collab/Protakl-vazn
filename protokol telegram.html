@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Vazn Kamaytirish Protokoli</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--tg-theme-bg-color, #f0f4f8);
+    color: var(--tg-theme-text-color, #1a1a1a);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1a3a5c 0%, #2563a8 100%);
+    padding: 20px 16px 16px;
+    color: #fff;
+  }
+  .header-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.65; margin-bottom: 4px; }
+  .header-title { font-size: 20px; font-weight: 700; }
+  .header-date { font-size: 11px; opacity: 0.55; margin-top: 3px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--tg-theme-bg-color, #fff);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 8px 4px 6px;
+    border: none; background: none; cursor: pointer;
+    font-size: 9px; color: #999; font-weight: 600; gap: 3px;
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: #2563a8; }
+  .nav-btn .icon { font-size: 20px; line-height: 1; }
+
+  .content { padding: 14px 14px 0; }
+
+  /* Cards */
+  .card {
+    background: var(--tg-theme-secondary-bg-color, #fff);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  }
+  .section-title {
+    font-size: 14px; font-weight: 700; color: #1a3a5c;
+    border-left: 3px solid #2563a8; padding-left: 10px;
+    margin-bottom: 12px;
+  }
+
+  /* Grid stats */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+  .stat-box {
+    background: #f8fafc; border-radius: 10px; padding: 11px 10px;
+  }
+  .stat-box.red { background: #fff3f3; border: 1px solid #fca5a5; }
+  .stat-box.warn { background: #fffbeb; border: 1px solid #fcd34d; }
+  .stat-label { font-size: 10px; color: #888; margin-bottom: 2px; }
+  .stat-val { font-size: 17px; font-weight: 800; color: #1a3a5c; }
+  .stat-val.red { color: #dc2626; }
+  .stat-sub { font-size: 10px; color: #dc2626; margin-top: 1px; }
+
+  /* Alert box */
+  .alert { border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+  .alert.warn { background: #fffbeb; border: 1px solid #fcd34d; }
+  .alert.info { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .alert.green { background: #f0fdf4; border: 1px solid #86efac; }
+  .alert.red { background: #fef2f2; border: 1px solid #fca5a5; }
+  .alert-title { font-weight: 700; font-size: 12px; color: #92400e; margin-bottom: 4px; }
+  .alert-text { font-size: 12px; color: #78350f; line-height: 1.5; }
+  .alert.info .alert-text { color: #1e40af; }
+  .alert.red .alert-text { color: #7f1d1d; }
+
+  /* Tahlil rows */
+  .tahlil-row {
+    border-radius: 10px; padding: 11px 13px;
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .tahlil-row.muhim { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .tahlil-row.normal { background: #f8fafc; border: 1px solid #e5e7eb; }
+  .tahlil-nom { font-weight: 700; font-size: 13px; color: #1a3a5c; }
+  .tahlil-sabab { font-size: 11px; color: #666; margin-top: 2px; }
+  .tahlil-vaqt { font-size: 11px; color: #2563a8; font-weight: 600; text-align: right; min-width: 75px; }
+
+  /* BJU mini badges */
+  .bju-mini { display: flex; gap: 8px; margin-top: 4px; }
+  .bju-badge { font-size: 11px; font-weight: 600; }
+  .bju-badge.kkal { color: #2563a8; }
+  .bju-badge.b { color: #16a34a; }
+  .bju-badge.j { color: #d97706; }
+  .bju-badge.u { color: #7c3aed; }
+
+  /* Meal accordion */
+  .meal-card { border-radius: 12px; border: 1px solid #e5e7eb; margin-bottom: 10px; overflow: hidden; }
+  .meal-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 13px; background: #f8fafc; cursor: pointer;
+    user-select: none;
+  }
+  .meal-time-badge {
+    background: #2563a8; color: #fff; border-radius: 8px;
+    padding: 4px 9px; font-size: 12px; font-weight: 700; min-width: 48px; text-align: center;
+  }
+  .meal-info { flex: 1; }
+  .meal-name { font-weight: 700; font-size: 13px; color: #1a3a5c; }
+  .meal-arrow { font-size: 11px; color: #bbb; }
+
+  /* Meal detail table */
+  .meal-detail { padding: 0 13px 13px; }
+  .meal-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+  .meal-table th {
+    padding: 6px 5px; font-weight: 700; background: #f1f5f9;
+    color: #475569;
+  }
+  .meal-table th:first-child { text-align: left; border-radius: 6px 0 0 6px; }
+  .meal-table th:last-child { border-radius: 0 6px 6px 0; }
+  .meal-table th:not(:first-child) { text-align: center; }
+  .meal-table td { padding: 7px 5px; border-bottom: 1px solid #f3f4f6; color: #374151; }
+  .meal-table td:not(:first-child) { text-align: center; }
+  .meal-table .total-row { background: #f8fafc; font-weight: 700; }
+  .meal-table .total-row td { border-bottom: none; }
+
+  /* Harakat */
+  .harakat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 10px; padding: 12px 13px; margin-bottom: 8px;
+  }
+  .harakat-row.faol { background: #f0fdf4; border: 1px solid #86efac; }
+  .harakat-row.dam { background: #f8fafc; border: 1px solid #e5e7eb; }
+  .harakat-kun { font-weight: 700; font-size: 14px; color: #1a3a5c; }
+  .harakat-faollik { font-size: 13px; }
+  .harakat-faollik.faol { color: #16a34a; }
+  .harakat-faollik.dam { color: #9ca3af; }
+
+  /* Maqsad */
+  .maqsad-row {
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    border-radius: 12px; padding: 15px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .maqsad-muddat-label { font-size: 10px; color: #6b7280; margin-bottom: 2px; }
+  .maqsad-muddat { font-weight: 700; font-size: 15px; color: #1a3a5c; }
+  .maqsad-vazn { font-weight: 800; font-size: 17px; color: #2563a8; text-align: right; }
+
+  .nazorat-row {
+    display: flex; justify-content: space-between; padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6; font-size: 13px;
+  }
+  .nazorat-row:last-child { border-bottom: none; }
+  .nazorat-chastota { color: #2563a8; font-weight: 600; font-size: 12px; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Tibbiy Protokol</div>
+  <div class="header-title">Vazn Kamaytirish Dasturi</div>
+  <div class="header-date" id="sana"></div>
+</div>
+
+<!-- Pages -->
+<div class="content">
+
+  <!-- PAGE: Bemor -->
+  <div id="page-bemor">
+    <div class="card">
+      <div class="section-title">👤 Bemor Ma'lumotlari</div>
+      <div class="grid2">
+        <div class="stat-box"><div class="stat-label">Yosh</div><div class="stat-val">41 yil</div></div>
+        <div class="stat-box"><div class="stat-label">Boy</div><div class="stat-val">170 sm</div></div>
+        <div class="stat-box"><div class="stat-label">Vazn</div><div class="stat-val">101 kg</div></div>
+        <div class="stat-box"><div class="stat-label">Bel aylanasi</div><div class="stat-val">120 sm</div></div>
+        <div class="stat-box"><div class="stat-label">Bo'yin aylanasi</div><div class="stat-val">43 sm</div></div>
+        <div class="stat-box red"><div class="stat-label">BMI</div><div class="stat-val red">34.9</div><div class="stat-sub">Semizlik II daraja</div></div>
+      </div>
+      <div class="alert warn" style="margin-top:12px">
+        <div class="alert-title">⚠️ Diqqat</div>
+        <div class="alert-text">Bel aylanasi 120 sm — me'yordan (94 sm) ancha yuqori. Yurak-qon tomir kasalliklari va 2-toifa diabet xavfi mavjud.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Tahlillar -->
+  <div id="page-tahlillar" class="hidden">
+    <div class="card">
+      <div class="section-title">🧪 Gormon Tahlillari</div>
+
+      <div class="tahlil-row muhim">
+        <div><div class="tahlil-nom">★ TSH, T3, T4</div><div class="tahlil-sabab">Qalqonsimon bez</div></div>
+        <div class="tahlil-vaqt">Ertalab och qoringa</div>
+      </div>
+      <div class="tahlil-row muhim">
+        <div><div class="tahlil-nom">★ Insulin + Glyukoza</div><div class="tahlil-sabab">Qand shakar, insulin rezistentligi</div></div>
+        <div class="tahlil-vaqt">Ertalab och qoringa</div>
+      </div>
+      <div class="tahlil-row muhim">
+        <div><div class="tahlil-nom">★ HOMA-IR</div><div class="tahlil-sabab">Insulin rezistentligi indeksi</div></div>
+        <div class="tahlil-vaqt">Insulin bilan birga</div>
+      </div>
+      <div class="tahlil-row muhim">
+        <div><div class="tahlil-nom">★ Kortizol</div><div class="tahlil-sabab">Stress gormoni</div></div>
+        <div class="tahlil-vaqt">08:00–09:00</div>
+      </div>
+      <div class="tahlil-row normal">
+        <div><div class="tahlil-nom">Testosterone</div><div class="tahlil-sabab">Erkaklik gormoni</div></div>
+        <div class="tahlil-vaqt">Ertalab och qoringa</div>
+      </div>
+      <div class="tahlil-row normal">
+        <div><div class="tahlil-nom">Lipid profil</div><div class="tahlil-sabab">Xolesterin darajasi</div></div>
+        <div class="tahlil-vaqt">Och qoringa</div>
+      </div>
+      <div class="tahlil-row normal">
+        <div><div class="tahlil-nom">ALT, AST</div><div class="tahlil-sabab">Jigar ko'rsatkichlari</div></div>
+        <div class="tahlil-vaqt">Och qoringa</div>
+      </div>
+      <div class="tahlil-row normal">
+        <div><div class="tahlil-nom">Umumiy qon tahlili</div><div class="tahlil-sabab">Umumiy holat</div></div>
+        <div class="tahlil-vaqt">Istalgan vaqt</div>
+      </div>
+
+      <div class="alert green" style="margin-top:4px">
+        <div class="alert-text" style="color:#166534">★ belgisi — birinchi navbatda topshirish kerak bo'lgan tahlillar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Ovqatlanish -->
+  <div id="page-ovqat" class="hidden">
+    <div class="card">
+      <div class="section-title">🍽️ Kunlik Ovqatlanish</div>
+      <div class="grid4" style="margin-bottom:14px">
+        <div class="stat-box" style="background:#eff6ff;text-align:center"><div class="stat-val" style="font-size:15px;color:#2563a8">1200</div><div class="stat-label">Kkal</div></div>
+        <div class="stat-box" style="background:#f0fdf4;text-align:center"><div class="stat-val" style="font-size:15px;color:#16a34a">114g</div><div class="stat-label">Белок</div></div>
+        <div class="stat-box" style="background:#fffbeb;text-align:center"><div class="stat-val" style="font-size:15px;color:#d97706">30g</div><div class="stat-label">Жир</div></div>
+        <div class="stat-box" style="background:#f5f3ff;text-align:center"><div class="stat-val" style="font-size:15px;color:#7c3aed">100g</div><div class="stat-label">Углевод</div></div>
+      </div>
+
+      <!-- Meal 1 -->
+      <div class="meal-card">
+        <div class="meal-header" onclick="toggleMeal(0)">
+          <div class="meal-time-badge">07:00</div>
+          <div class="meal-info">
+            <div class="meal-name">🌅 Nonushta</div>
+            <div class="bju-mini">
+              <span class="bju-badge kkal">171 kkal</span>
+              <span class="bju-badge b">B:14g</span>
+              <span class="bju-badge j">J:11g</span>
+              <span class="bju-badge u">U:4g</span>
+            </div>
+          </div>
+          <div class="meal-arrow" id="arrow-0">▼</div>
+        </div>
+        <div class="meal-detail hidden" id="detail-0">
+          <table class="meal-table">
+            <thead><tr><th>Taom</th><th>g</th><th style="color:#2563a8">Kkal</th><th style="color:#16a34a">B</th><th style="color:#d97706">J</th><th style="color:#7c3aed">U</th></tr></thead>
+            <tbody>
+              <tr><td>Tuxum (qaynatilgan)</td><td>120</td><td>156</td><td>13</td><td>11</td><td>1</td></tr>
+              <tr><td>Bodring</td><td>100</td><td>15</td><td>1</td><td>0</td><td>3</td></tr>
+              <tr><td>Choy (shakarsiz)</td><td>200</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+              <tr class="total-row"><td><b>Jami</b></td><td>420</td><td><b>171</b></td><td><b>14</b></td><td><b>11</b></td><td><b>4</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Meal 2 -->
+      <div class="meal-card">
+        <div class="meal-header" onclick="toggleMeal(1)">
+          <div class="meal-time-badge">10:00</div>
+          <div class="meal-info">
+            <div class="meal-name">🍎 2-chi nonushta</div>
+            <div class="bju-mini">
+              <span class="bju-badge kkal">148 kkal</span>
+              <span class="bju-badge b">B:4g</span>
+              <span class="bju-badge j">J:7g</span>
+              <span class="bju-badge u">U:18g</span>
+            </div>
+          </div>
+          <div class="meal-arrow" id="arrow-1">▼</div>
+        </div>
+        <div class="meal-detail hidden" id="detail-1">
+          <table class="meal-table">
+            <thead><tr><th>Taom</th><th>g</th><th style="color:#2563a8">Kkal</th><th style="color:#16a34a">B</th><th style="color:#d97706">J</th><th style="color:#7c3aed">U</th></tr></thead>
+            <tbody>
+              <tr><td>Olma</td><td>150</td><td>78</td><td>0</td><td>0</td><td>20</td></tr>
+              <tr><td>Yong'oq (gretsiy)</td><td>15</td><td>98</td><td>2</td><td>10</td><td>2</td></tr>
+              <tr class="total-row"><td><b>Jami</b></td><td>165</td><td><b>148</b></td><td><b>4</b></td><td><b>7</b></td><td><b>18</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Meal 3 -->
+      <div class="meal-card">
+        <div class="meal-header" onclick="toggleMeal(2)">
+          <div class="meal-time-badge">13:00</div>
+          <div class="meal-info">
+            <div class="meal-name">🍽️ Tushlik</div>
+            <div class="bju-mini">
+              <span class="bju-badge kkal">352 kkal</span>
+              <span class="bju-badge b">B:38g</span>
+              <span class="bju-badge j">J:7g</span>
+              <span class="bju-badge u">U:33g</span>
+            </div>
+          </div>
+          <div class="meal-arrow" id="arrow-2">▼</div>
+        </div>
+        <div class="meal-detail hidden" id="detail-2">
+          <table class="meal-table">
+            <thead><tr><th>Taom</th><th>g</th><th style="color:#2563a8">Kkal</th><th style="color:#16a34a">B</th><th style="color:#d97706">J</th><th style="color:#7c3aed">U</th></tr></thead>
+            <tbody>
+              <tr><td>Tovuq ko'kragi</td><td>150</td><td>165</td><td>31</td><td>4</td><td>0</td></tr>
+              <tr><td>Greчka (tayyor)</td><td>150</td><td>165</td><td>6</td><td>2</td><td>31</td></tr>
+              <tr><td>Sabzavot salati</td><td>150</td><td>40</td><td>2</td><td>1</td><td>8</td></tr>
+              <tr class="total-row"><td><b>Jami</b></td><td>450</td><td><b>352</b></td><td><b>38</b></td><td><b>7</b></td><td><b>33</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Meal 4 -->
+      <div class="meal-card">
+        <div class="meal-header" onclick="toggleMeal(3)">
+          <div class="meal-time-badge">16:00</div>
+          <div class="meal-info">
+            <div class="meal-name">🥛 Kechki yengil</div>
+            <div class="bju-mini">
+              <span class="bju-badge kkal">150 kkal</span>
+              <span class="bju-badge b">B:22g</span>
+              <span class="bju-badge j">J:4g</span>
+              <span class="bju-badge u">U:6g</span>
+            </div>
+          </div>
+          <div class="meal-arrow" id="arrow-3">▼</div>
+        </div>
+        <div class="meal-detail hidden" id="detail-3">
+          <table class="meal-table">
+            <thead><tr><th>Taom</th><th>g</th><th style="color:#2563a8">Kkal</th><th style="color:#16a34a">B</th><th style="color:#d97706">J</th><th style="color:#7c3aed">U</th></tr></thead>
+            <tbody>
+              <tr><td>Tvorog (0–5% yog'li)</td><td>200</td><td>150</td><td>22</td><td>4</td><td>6</td></tr>
+              <tr class="total-row"><td><b>Jami</b></td><td>200</td><td><b>150</b></td><td><b>22</b></td><td><b>4</b></td><td><b>6</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Meal 5 -->
+      <div class="meal-card">
+        <div class="meal-header" onclick="toggleMeal(4)">
+          <div class="meal-time-badge">19:00</div>
+          <div class="meal-info">
+            <div class="meal-name">🌙 Kechki ovqat</div>
+            <div class="bju-mini">
+              <span class="bju-badge kkal">252 kkal</span>
+              <span class="bju-badge b">B:28g</span>
+              <span class="bju-badge j">J:8g</span>
+              <span class="bju-badge u">U:15g</span>
+            </div>
+          </div>
+          <div class="meal-arrow" id="arrow-4">▼</div>
+        </div>
+        <div class="meal-detail hidden" id="detail-4">
+          <table class="meal-table">
+            <thead><tr><th>Taom</th><th>g</th><th style="color:#2563a8">Kkal</th><th style="color:#16a34a">B</th><th style="color:#d97706">J</th><th style="color:#7c3aed">U</th></tr></thead>
+            <tbody>
+              <tr><td>Baliq (tilapia/hake)</td><td>150</td><td>135</td><td>28</td><td>3</td><td>0</td></tr>
+              <tr><td>Qaynatilgan brokkoli</td><td>150</td><td>50</td><td>4</td><td>1</td><td>8</td></tr>
+              <tr><td>Sabzi (qaynatilgan)</td><td>100</td><td>35</td><td>1</td><td>0</td><td>8</td></tr>
+              <tr class="total-row"><td><b>Jami</b></td><td>400</td><td><b>252</b></td><td><b>28</b></td><td><b>8</b></td><td><b>15</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="alert info">
+        <div class="alert-text">💧 Kuniga kamida <b>2 litr suv</b> · ❌ Shakar va un yo'q · ⛔ 19:00 dan keyin ovqat yo'q</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Harakat -->
+  <div id="page-harakat" class="hidden">
+    <div class="card">
+      <div class="section-title">🚶 Haftalik Harakat Rejasi</div>
+      <div class="harakat-row faol"><span class="harakat-kun">Dushanba</span><span class="harakat-faollik faol">30 daq yurish 🟢</span></div>
+      <div class="harakat-row dam"><span class="harakat-kun">Seshanba</span><span class="harakat-faollik dam">Dam olish ⚪</span></div>
+      <div class="harakat-row faol"><span class="harakat-kun">Chorshanba</span><span class="harakat-faollik faol">30 daq yurish 🟢</span></div>
+      <div class="harakat-row dam"><span class="harakat-kun">Payshanba</span><span class="harakat-faollik dam">Dam olish ⚪</span></div>
+      <div class="harakat-row faol"><span class="harakat-kun">Juma</span><span class="harakat-faollik faol">30 daq yurish 🟢</span></div>
+      <div class="harakat-row faol"><span class="harakat-kun">Shanba</span><span class="harakat-faollik faol">40 daq yurish 🟢</span></div>
+      <div class="harakat-row dam"><span class="harakat-kun">Yakshanba</span><span class="harakat-faollik dam">Dam olish ⚪</span></div>
+      <div class="alert warn" style="margin-top:12px">
+        <div class="alert-text">💡 Harakatni asta-sekin oshiring. Dastlab yurish yetarli — yugurish shart emas.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: Maqsad -->
+  <div id="page-maqsad" class="hidden">
+    <div class="card">
+      <div class="section-title">🎯 Maqsadlar</div>
+      <div class="maqsad-row">
+        <div><div class="maqsad-muddat-label">Muddat</div><div class="maqsad-muddat">1 oy</div></div>
+        <div class="maqsad-vazn">−3 dan −4 kg</div>
+      </div>
+      <div class="maqsad-row">
+        <div><div class="maqsad-muddat-label">Muddat</div><div class="maqsad-muddat">3 oy</div></div>
+        <div class="maqsad-vazn">−10 dan −12 kg</div>
+      </div>
+      <div class="maqsad-row">
+        <div><div class="maqsad-muddat-label">Muddat</div><div class="maqsad-muddat">6 oy</div></div>
+        <div class="maqsad-vazn">−20 kg gacha</div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px">📊 Nazorat</div>
+      <div class="nazorat-row"><span>Vazn o'lchash</span><span class="nazorat-chastota">Har hafta</span></div>
+      <div class="nazorat-row"><span>Bel aylanasi</span><span class="nazorat-chastota">Har 2 haftada</span></div>
+      <div class="nazorat-row"><span>Tahlil natijalari</span><span class="nazorat-chastota">Endokrinolog bilan</span></div>
+
+      <div class="alert red" style="margin-top:12px">
+        <div class="alert-text">👨‍⚕️ <b>Muhim:</b> Endokrinolog yoki terapevt nazoratida davom eting!</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-bemor" onclick="showPage('bemor')">
+    <span class="icon">👤</span>Bemor
+  </button>
+  <button class="nav-btn" id="nav-tahlillar" onclick="showPage('tahlillar')">
+    <span class="icon">🧪</span>Tahlil
+  </button>
+  <button class="nav-btn" id="nav-ovqat" onclick="showPage('ovqat')">
+    <span class="icon">🍽️</span>Ovqat
+  </button>
+  <button class="nav-btn" id="nav-harakat" onclick="showPage('harakat')">
+    <span class="icon">🚶</span>Harakat
+  </button>
+  <button class="nav-btn" id="nav-maqsad" onclick="showPage('maqsad')">
+    <span class="icon">🎯</span>Maqsad
+  </button>
+</nav>
+
+<script>
+  // Init Telegram Web App
+  if (window.Telegram && window.Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+  }
+
+  // Set date
+  document.getElementById('sana').textContent = 'Tuzilgan sana: ' + new Date().toLocaleDateString('uz-UZ');
+
+  const pages = ['bemor', 'tahlillar', 'ovqat', 'harakat', 'maqsad'];
+  let currentPage = 'bemor';
+
+  function showPage(name) {
+    pages.forEach(p => {
+      document.getElementById('page-' + p).classList.add('hidden');
+      document.getElementById('nav-' + p).classList.remove('active');
+    });
+    document.getElementById('page-' + name).classList.remove('hidden');
+    document.getElementById('nav-' + name).classList.add('active');
+    currentPage = name;
+    window.scrollTo(0, 0);
+  }
+
+  let openMeal = null;
+  function toggleMeal(i) {
+    const detail = document.getElementById('detail-' + i);
+    const arrow = document.getElementById('arrow-' + i);
+    if (openMeal === i) {
+      detail.classList.add('hidden');
+      arrow.textContent = '▼';
+      openMeal = null;
+    } else {
+      if (openMeal !== null) {
+        document.getElementById('detail-' + openMeal).classList.add('hidden');
+        document.getElementById('arrow-' + openMeal).textContent = '▼';
+      }
+      detail.classList.remove('hidden');
+      arrow.textContent = '▲';
+      openMeal = i;
+    }
+  }
+</script>
+</body>
+</html>
